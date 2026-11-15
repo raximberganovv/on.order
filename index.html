@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heart A</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    ellipse at center,
+    #1b0812 0%,
+    #09040b 52%,
+    #020104 100%
+  );
+}
+
+.stage {
+  width: min(98vw, 900px);
+  height: min(98vh, 900px);
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.letter {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  font: 400 clamp(120px, 24vw, 240px)/1 Georgia, serif;
+  color: #fff0f5;
+  text-shadow:
+    0 0 8px white,
+    0 0 22px #ff6b9d,
+    0 0 50px #ff174f,
+    0 0 95px #ff174f;
+  animation: pulse 2.7s ease-in-out infinite;
+  user-select: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(.94);
+    opacity: .88;
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@media(max-width:520px) {
+  .stage {
+    width: 100vw;
+    height: 84vh;
+  }
+
+  .letter {
+    font-size: 34vw;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="stage">
+  <canvas id="heart"></canvas>
+  <div class="letter">A</div>
+</div>
+
+<script>
+const c = document.getElementById('heart');
+const x = c.getContext('2d');
+
+let w, h, d;
+
+function resize() {
+  let r = c.getBoundingClientRect();
+
+  d = Math.min(devicePixelRatio || 1, 2);
+  w = r.width;
+  h = r.height;
+
+  c.width = w * d;
+  c.height = h * d;
+
+  x.setTransform(d, 0, 0, d, 0, 0);
+}
+
+addEventListener('resize', resize);
+resize();
+
+function p(t, s) {
+  return {
+    x: 16 * Math.sin(t) ** 3 * s,
+
+    y: -(13 * Math.cos(t)
+      - 5 * Math.cos(2*t)
+      - 2 * Math.cos(3*t)
+      - Math.cos(4*t)) * s
+  };
+}
+
+const sparks = Array.from({length:110}, () => ({
+  t: Math.random() * Math.PI * 2,
+  o: Math.random(),
+  z: .5 + Math.random() * 1.8,
+  v: .0001 + Math.random() * .00025
+}));
+
+function draw(ms) {
+
+  x.clearRect(0, 0, w, h);
+
+  let s = Math.min(w, h) * .036;
+
+  let beat = 1 +
+    ((1 + Math.sin(ms * .0023)) / 2) ** 9 * .075;
+
+  let cx = w / 2;
+  let cy = h * .485;
+
+  // Yurak atrofidagi nur
+  let g = x.createRadialGradient(
+    cx, cy, s * 2,
+    cx, cy, s * 19
+  );
+
+  g.addColorStop(0, 'rgba(255,35,92,.15)');
+  g.addColorStop(1, 'rgba(255,20,70,0)');
+
+  x.fillStyle = g;
+  x.fillRect(0, 0, w, h);
+
+  // Yurak nurlari
+  for (let i = 0; i < 700; i++) {
+
+    let t = i / 700 * Math.PI * 2;
+    let a = p(t, s * beat);
+
+    let k = .62 + .13 *
+      Math.sin(i * .19 + ms * .0011);
+
+    x.beginPath();
+
+    x.moveTo(cx + a.x, cy + a.y);
+
+    x.lineTo(
+      cx + a.x * k,
+      cy + a.y * k
+    );
+
+    let q = .5 + .5 *
+      Math.sin(i * .11 - ms * .0018);
+
+    x.strokeStyle =
+      `rgba(255,${65+q*65},${115+q*75},${.2+q*.5})`;
+
+    x.lineWidth = .45 + q * .65;
+    x.stroke();
+  }
+
+  // Yurak konturi
+  x.beginPath();
+
+  for (let i = 0; i <= 800; i++) {
+
+    let a = p(
+      i / 800 * Math.PI * 2,
+      s * beat
+    );
+
+    if (!i) {
+      x.moveTo(cx + a.x, cy + a.y);
+    } else {
+      x.lineTo(cx + a.x, cy + a.y);
+    }
+  }
+
+  x.closePath();
+
+  x.strokeStyle = 'rgba(255,140,180,.7)';
+  x.lineWidth = 1.2;
+
+  x.shadowColor = '#ff235f';
+  x.shadowBlur = 20;
+
+  x.stroke();
+  x.shadowBlur = 0;
+
+  // Yaltiraydigan zarralar
+  sparks.forEach((a, i) => {
+
+    let z = p(
+      a.t + ms * a.v,
+      s * (1.03 + a.o * .25) * beat
+    );
+
+    let tw = .4 + .6 *
+      (.5 + .5 * Math.sin(ms * .004 + i));
+
+    x.beginPath();
+
+    x.arc(
+      cx + z.x,
+      cy + z.y,
+      a.z * tw,
+      0,
+      Math.PI * 2
+    );
+
+    x.fillStyle =
+      `rgba(255,180,205,${tw*.85})`;
+
+    x.shadowColor = '#ff477e';
+    x.shadowBlur = 12;
+
+    x.fill();
+    x.shadowBlur = 0;
+  });
+
+  requestAnimationFrame(draw);
+}
+
+requestAnimationFrame(draw);
+</script>
+
+</body>
+</html>
